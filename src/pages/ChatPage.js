@@ -6,9 +6,8 @@ import ChatBubble from '../components/ChatBubble';
 import TopicSelection from '../components/TopicSelection';
 import { speakText, getTTSOptions, speakTextWithSentenceControl } from '../services/ttsService';
 import { splitIntoSentences } from '../utils/sentenceSplitter';
+import { API_BASE_URL } from '../config/api';
 import './ChatPage.css'; // Tạo file ChatPage.css
-
-const API_BASE_URL = 'http://localhost:5000/api/chat'; // Địa chỉ backend
 
 function ChatPage() {
   const [messages, setMessages] = useState([]);

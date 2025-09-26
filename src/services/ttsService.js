@@ -1,8 +1,7 @@
 // src/services/ttsService.js
 import axios from 'axios';
 import { splitIntoSentences, addPausesBetweenSentences, calculatePauseDuration, getSpeechRateForLevel, formatTextForTTS } from '../utils/sentenceSplitter';
-
-const API_BASE_URL = 'http://localhost:5000/api/chat';
+import { API_BASE_URL } from '../config/api';
 
 /**
  * Convert text to speech using OpenAI's TTS API via backend
@@ -77,7 +76,7 @@ export async function playTextSentenceBySentence(text, options = {}) {
     voice = 'alloy',
     model = 'tts-1',
     rate = 0.8,
-    pauseDuration = 1000,
+    pauseDuration = 500,
     onSentenceStart = null,
     onSentenceEnd = null,
     onPause = null
