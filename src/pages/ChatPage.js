@@ -4,6 +4,7 @@ import axios from 'axios';
 import Header from '../components/Header';
 import ChatBubble from '../components/ChatBubble';
 import TopicSelection from '../components/TopicSelection';
+import UserInfo from '../components/UserInfo';
 import { speakText, getTTSOptions, speakTextWithSentenceControl } from '../services/ttsService';
 import { splitIntoSentences } from '../utils/sentenceSplitter';
 import { API_BASE_URL } from '../config/api';
@@ -17,7 +18,9 @@ function ChatPage() {
   const [ttsOptions, setTtsOptions] = useState({ voices: ['alloy'], models: ['tts-1'] });
   const [selectedVoice, setSelectedVoice] = useState('alloy');
   const [selectedTopic, setSelectedTopic] = useState(null);
-  const [showTopicSelection, setShowTopicSelection] = useState(true);
+  const [showUserInfo, setShowUserInfo] = useState(true);
+  const [showTopicSelection, setShowTopicSelection] = useState(false);
+  const [userInfo, setUserInfo] = useState(null);
   const [speechRate, setSpeechRate] = useState(0.8);
   const [currentSentence, setCurrentSentence] = useState('');
   const [sentenceIndex, setSentenceIndex] = useState(0);
@@ -81,6 +84,9 @@ function ChatPage() {
       setCurrentSentence('');
       setSentenceIndex(0);
       setTotalSentences(0);
+      
+      // Start timeout only after teacher finishes speaking
+      resetTimeout();
     }
   };
 
@@ -94,18 +100,31 @@ function ChatPage() {
       window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
+    
+    // Start timeout when speech is manually stopped
+    resetTimeout();
+  };
+
+  // Clear timeout without starting a new one
+  const clearUserTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
   };
 
   // Reset timeout timer
   const resetTimeout = () => {
     lastInteractionRef.current = Date.now();
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    clearUserTimeout();
+    
+    // Only start timeout if teacher is not currently speaking
+    if (!isSpeaking) {
+      // Set new timeout for 30 seconds
+      timeoutRef.current = setTimeout(() => {
+        handleAutoPrompt();
+      }, 30000); // 30 seconds
     }
-    // Set new timeout for 30 seconds
-    timeoutRef.current = setTimeout(() => {
-      handleAutoPrompt();
-    }, 30000); // 30 seconds
   };
 
   // Handle auto-prompt when student doesn't respond
@@ -117,6 +136,7 @@ function ChatPage() {
         // Send a special message to trigger teacher's re-engagement
         const response = await axios.post(`${API_BASE_URL}/send-message`, {
           message: "[AUTO_PROMPT] The student hasn't responded for 30 seconds. Please re-engage them with an encouraging question or suggest a new activity to continue the lesson.",
+          userInfo: userInfo
         });
         const aiResponseText = response.data.response;
         const aiMessage = { sender: 'ai', text: aiResponseText };
@@ -132,19 +152,24 @@ function ChatPage() {
   // Clear timeout on component unmount
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      clearUserTimeout();
     };
   }, []);
+
+  // Handle user info submission
+  const handleUserInfoSubmit = (info) => {
+    setUserInfo(info);
+    setShowUserInfo(false);
+    setShowTopicSelection(true);
+  };
 
   // Handle topic selection
   const handleTopicSelect = async (topic) => {
     setSelectedTopic(topic);
     setShowTopicSelection(false);
     
-    // Start the lesson with the selected topic
-    const topicGreeting = `Hello! I'm Professor Wise-Owl, your English teacher! Today we're going to learn about ${topic.title.toLowerCase()}! ${topic.description} Let's start by learning some new words. What do you know about ${topic.title.toLowerCase()}?`;
+    // Start the lesson with the selected topic, using student's name
+    const topicGreeting = `Hello ${userInfo.name}! I'm Professor Wise-Owl, your English teacher! Today we're going to learn about ${topic.title.toLowerCase()}! ${topic.description} Let's start by learning some new words. What do you know about ${topic.title.toLowerCase()}, ${userInfo.name}?`;
     
     setMessages([{ sender: 'ai', text: topicGreeting }]);
     speakTextWithTTS(topicGreeting);
@@ -160,20 +185,25 @@ function ChatPage() {
     setShowTopicSelection(true);
     setSelectedTopic(null);
     setMessages([]);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
+    clearUserTimeout();
   };
 
   const sendMessage = useCallback(async (messageToSend = inputMessage) => {
     if (!messageToSend.trim()) return;
+    
+    // Block user input when teacher is speaking
+    if (isSpeaking) {
+      console.log('User input blocked: Teacher is currently speaking');
+      return;
+    }
 
+    console.log('Sending message:', messageToSend); // Debug log
     const userMessage = { sender: 'user', text: messageToSend };
     setMessages((prev) => [...prev, userMessage]);
     setInputMessage(''); // Xóa nội dung input
     
-    // Reset timeout when user sends a message
-    resetTimeout();
+    // Clear timeout when user sends a message (will restart after teacher finishes speaking)
+    clearUserTimeout();
 
     try {
       const response = await axios.post(`${API_BASE_URL}/send-message`, {
@@ -183,7 +213,8 @@ function ChatPage() {
           title: selectedTopic.title,
           vocabulary: selectedTopic.vocabulary,
           description: selectedTopic.description
-        } : null
+        } : null,
+        userInfo: userInfo
       });
       const aiResponseText = response.data.response;
       const aiMessage = { sender: 'ai', text: aiResponseText };
@@ -211,6 +242,7 @@ function ChatPage() {
 
       recognitionRef.current.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
+        console.log('Speech recognition result:', transcript); // Debug log
         setInputMessage(transcript); // Đặt transcript vào ô input
         sendMessage(transcript); // Gửi tin nhắn sau khi nhận dạng
         setIsListening(false);
@@ -231,6 +263,12 @@ function ChatPage() {
   }, [sendMessage]);
 
   const handleSpeakClick = () => {
+    // Block speech recognition when teacher is speaking
+    if (isSpeaking) {
+      console.log('Speech recognition blocked: Teacher is currently speaking');
+      return;
+    }
+    
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
@@ -244,7 +282,11 @@ function ChatPage() {
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault(); // Ngăn xuống dòng trong textarea nếu có
-      sendMessage();
+      const currentMessage = e.target.value.trim();
+      console.log('Enter pressed, current message:', currentMessage); // Debug log
+      if (currentMessage) {
+        sendMessage(currentMessage);
+      }
     }
   };
 
@@ -252,10 +294,12 @@ function ChatPage() {
     <div className="chat-page-container">
       <Header />
       
-      {showTopicSelection ? (
+      {showUserInfo ? (
+        <UserInfo onUserInfoSubmit={handleUserInfoSubmit} />
+      ) : showTopicSelection ? (
         <TopicSelection 
           onTopicSelect={handleTopicSelect}
-          selectedAge={7}
+          selectedAge={userInfo?.age || 7}
         />
       ) : (
         <>
@@ -332,6 +376,14 @@ function ChatPage() {
             </div>
           )}
 
+          {/* Teacher Speaking Indicator */}
+          {isSpeaking && (
+            <div className="teacher-speaking-indicator">
+              <div className="speaking-icon">🎤</div>
+              <div className="speaking-text">Teacher is speaking... Please wait</div>
+            </div>
+          )}
+
           <div className="chat-area">
             {messages.map((msg, index) => (
               <ChatBubble 
@@ -346,21 +398,35 @@ function ChatPage() {
           </div>
           <div className="chat-input-area">
             <button
-              className={`speak-button ${isListening ? 'listening' : ''}`}
+              className={`speak-button ${isListening ? 'listening' : ''} ${isSpeaking ? 'blocked' : ''}`}
               onClick={handleSpeakClick}
-              title={isListening ? 'Stop Speaking' : 'Speak'}
+              disabled={isSpeaking}
+              title={isSpeaking ? 'Please wait for teacher to finish speaking' : (isListening ? 'Stop Speaking' : 'Speak')}
             >
-              {isListening ? '🔴 Stop' : '🎤 Speak'}
+              {isSpeaking ? '🔇 Blocked' : (isListening ? '🔴 Stop' : '🎤 Speak')}
             </button>
             <input
               type="text"
-              className="message-input"
-              placeholder="Type your answer or ask a question..."
+              className={`message-input ${isSpeaking ? 'blocked' : ''}`}
+              placeholder={isSpeaking ? "Please wait for teacher to finish speaking..." : "Type your answer or ask a question..."}
               value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
+              onChange={(e) => {
+                setInputMessage(e.target.value);
+                // Stop speech recognition if user starts typing
+                if (isListening) {
+                  recognitionRef.current.stop();
+                  setIsListening(false);
+                }
+              }}
               onKeyDown={handleKeyDown}
+              disabled={isSpeaking}
             />
-            <button className="send-button" onClick={() => sendMessage()}>
+            <button 
+              className={`send-button ${isSpeaking ? 'blocked' : ''}`} 
+              onClick={() => sendMessage()}
+              disabled={isSpeaking}
+              title={isSpeaking ? 'Please wait for teacher to finish speaking' : 'Send message'}
+            >
               Send
             </button>
           </div>

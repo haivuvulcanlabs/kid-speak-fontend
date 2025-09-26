@@ -175,6 +175,40 @@
   }
 }
 
+/* Teacher Speaking Indicator */
+.teacher-speaking-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  font-weight: 500;
+  animation: slideDown 0.3s ease-out;
+}
+
+.speaking-icon {
+  font-size: 1.2rem;
+  animation: bounce 1s infinite;
+}
+
+.speaking-text {
+  font-size: 14px;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-3px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
 /* Topic Info Bar */
 .topic-info-bar {
   display: flex;
@@ -309,6 +343,41 @@
 
 .send-button:active {
   transform: translateY(0);
+}
+
+/* Blocked input styles */
+.message-input.blocked {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.message-input.blocked:focus {
+  border-color: #dee2e6;
+  box-shadow: none;
+}
+
+.speak-button.blocked {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.speak-button.blocked:hover {
+  background-color: #6c757d;
+  transform: none;
+}
+
+.send-button.blocked {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.send-button.blocked:hover {
+  background-color: #6c757d;
+  transform: none;
 }
 
 /* Scrollbar styling */
