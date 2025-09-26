@@ -1,6 +1,7 @@
 // src/pages/ChatPage.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import ChatBubble from '../components/ChatBubble';
 import TopicSelection from '../components/TopicSelection';
@@ -11,6 +12,7 @@ import { API_BASE_URL } from '../config/api';
 import './ChatPage.css'; // Tạo file ChatPage.css
 
 function ChatPage() {
+  const { user, isAuthenticated, logout } = useAuth();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
@@ -25,6 +27,7 @@ function ChatPage() {
   const [currentSentence, setCurrentSentence] = useState('');
   const [sentenceIndex, setSentenceIndex] = useState(0);
   const [totalSentences, setTotalSentences] = useState(0);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
   const currentAudioRef = useRef(null);
@@ -43,6 +46,44 @@ function ChatPage() {
     };
     loadTTSOptions();
   }, []);
+
+  // Update userInfo when user authentication changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setUserInfo({
+        name: user.name,
+        age: user.age,
+        languagePreference: user.languagePreference
+      });
+    } else {
+      setUserInfo(null);
+    }
+  }, [isAuthenticated, user]);
+
+  // Start chat session when topic is selected and user is authenticated
+  const startChatSession = async (topic) => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await axios.post(`${API_BASE_URL}/start-session`, {
+        topic: topic.title,
+        difficultyLevel: 'beginner'
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data.success) {
+        setCurrentSessionId(response.data.data.sessionId);
+      }
+    } catch (error) {
+      console.error('Failed to start chat session:', error);
+    }
+  };
 
   // Enhanced speak function with OpenAI TTS and sentence control
   const speakTextWithTTS = async (text) => {
@@ -168,8 +209,14 @@ function ChatPage() {
     setSelectedTopic(topic);
     setShowTopicSelection(false);
     
+    // Start chat session if user is authenticated
+    if (isAuthenticated) {
+      await startChatSession(topic);
+    }
+    
     // Start the lesson with the selected topic, using student's name
-    const topicGreeting = `Hello ${userInfo.name}! I'm Professor Wise-Owl, your English teacher! Today we're going to learn about ${topic.title.toLowerCase()}! ${topic.description} Let's start by learning some new words. What do you know about ${topic.title.toLowerCase()}, ${userInfo.name}?`;
+    const studentName = userInfo?.name || 'there';
+    const topicGreeting = `Hello ${studentName}! I'm Professor Wise-Owl, your English teacher! Today we're going to learn about ${topic.title.toLowerCase()}! ${topic.description} Let's start by learning some new words. What do you know about ${topic.title.toLowerCase()}, ${studentName}?`;
     
     setMessages([{ sender: 'ai', text: topicGreeting }]);
     speakTextWithTTS(topicGreeting);
@@ -206,7 +253,8 @@ function ChatPage() {
     clearUserTimeout();
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/send-message`, {
+      // Prepare request data
+      const requestData = {
         message: messageToSend,
         topic: selectedTopic ? {
           id: selectedTopic.id,
@@ -214,17 +262,35 @@ function ChatPage() {
           vocabulary: selectedTopic.vocabulary,
           description: selectedTopic.description
         } : null,
-        userInfo: userInfo
-      });
-      const aiResponseText = response.data.response;
+        userInfo: userInfo,
+        sessionId: currentSessionId
+      };
+
+      // Add authentication headers if user is logged in
+      const headers = {};
+      if (isAuthenticated) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      }
+
+      const response = await axios.post(`${API_BASE_URL}/send-message`, requestData, { headers });
+      const aiResponseText = response.data.data?.response || response.data.response;
       const aiMessage = { sender: 'ai', text: aiResponseText };
       setMessages((prev) => [...prev, aiMessage]);
+      
+      // Update session ID if provided
+      if (response.data.data?.sessionId) {
+        setCurrentSessionId(response.data.data.sessionId);
+      }
+      
       speakTextWithTTS(aiResponseText); // Đọc to phản hồi của AI với OpenAI TTS
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages((prev) => [...prev, { sender: 'ai', text: 'Oops! Something went wrong. Please try again.' }]);
     }
-  }, [inputMessage]);
+  }, [inputMessage, isAuthenticated, currentSessionId, selectedTopic, userInfo, isSpeaking]);
 
   // Cuộn xuống cuối tin nhắn mới
   useEffect(() => {
@@ -293,6 +359,23 @@ function ChatPage() {
   return (
     <div className="chat-page-container">
       <Header />
+      
+      {/* User Authentication Bar */}
+      {isAuthenticated && user && (
+        <div className="user-auth-bar">
+          <div className="user-info">
+            <span className="user-name">👋 Hello, {user.name}!</span>
+            <span className="user-age">Age: {user.age}</span>
+          </div>
+          <button 
+            className="logout-button"
+            onClick={logout}
+            title="Logout"
+          >
+            🚪 Logout
+          </button>
+        </div>
+      )}
       
       {showUserInfo ? (
         <UserInfo onUserInfoSubmit={handleUserInfoSubmit} />
