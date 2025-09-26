@@ -1,0 +1,103 @@
+/* src/pages/ChatPage.css */
+.chat-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 90vh; /* Chiều cao cố định cho màn hình chat */
+  max-width: 700px;
+  margin: 20px auto;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.chat-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 15px;
+  background-color: #e5edf1;
+}
+
+.chat-input-area {
+  display: flex;
+  padding: 10px 15px;
+  border-top: 1px solid #eee;
+  background-color: #f9f9f9;
+  gap: 10px;
+}
+
+.message-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 16px;
+  outline: none;
+}
+
+.send-button, .speak-button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 20px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.send-button:hover, .speak-button:hover {
+  background-color: #0056b3;
+}
+
+.speak-button.listening {
+  background-color: #dc3545; /* Màu đỏ khi đang nghe */
+}
+
+/* Styles cho ChatBubble (src/components/ChatBubble.css) */
+.chat-bubble-wrapper {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.chat-bubble {
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 70%;
+  position: relative;
+}
+
+.chat-bubble-wrapper.user {
+  justify-content: flex-end;
+}
+
+.chat-bubble-wrapper.user .chat-bubble {
+  background-color: #007bff;
+  color: white;
+  border-bottom-right-radius: 2px;
+}
+
+.chat-bubble-wrapper.ai {
+  justify-content: flex-start;
+}
+
+.chat-bubble-wrapper.ai .chat-bubble {
+  background-color: #e0e0e0;
+  color: #333;
+  border-bottom-left-radius: 2px;
+}
+
+/* Styles cho Header (src/components/Header.css) */
+.app-header {
+  background-color: #282c34;
+  padding: 15px 20px;
+  color: white;
+  text-align: center;
+  border-bottom: 1px solid #444;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 24px;
+}

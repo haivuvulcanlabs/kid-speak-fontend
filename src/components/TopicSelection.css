@@ -1,0 +1,205 @@
+/* TopicSelection.css */
+.topic-selection-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: white;
+}
+
+.topic-selection-header {
+  text-align: center;
+  margin-bottom: 30px;
+  max-width: 600px;
+}
+
+.topic-selection-header h2 {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.topic-selection-header p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.topics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.topic-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  padding: 25px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  color: #333;
+  position: relative;
+  overflow: hidden;
+}
+
+.topic-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.topic-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.topic-card:hover::before {
+  transform: scaleX(1);
+}
+
+.topic-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.topic-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.topic-description {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.topic-vocabulary {
+  margin-bottom: 15px;
+}
+
+.vocab-label {
+  font-size: 0.9rem;
+  color: #888;
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.vocab-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.vocab-word {
+  background: #e8f4fd;
+  color: #2980b9;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.vocab-more {
+  background: #f8f9fa;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.topic-age {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #3498db;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.topic-selection-footer {
+  text-align: center;
+  max-width: 600px;
+}
+
+.topic-selection-footer p {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px 25px;
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .topic-selection-container {
+    padding: 15px;
+  }
+  
+  .topic-selection-header h2 {
+    font-size: 2rem;
+  }
+  
+  .topic-selection-header p {
+    font-size: 1rem;
+  }
+  
+  .topics-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .topic-card {
+    padding: 20px;
+  }
+  
+  .topic-icon {
+    font-size: 2.5rem;
+  }
+  
+  .topic-title {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .topic-selection-header h2 {
+    font-size: 1.8rem;
+  }
+  
+  .topic-card {
+    padding: 15px;
+  }
+  
+  .vocab-words {
+    gap: 4px;
+  }
+  
+  .vocab-word {
+    font-size: 0.8rem;
+    padding: 3px 6px;
+  }
+}
